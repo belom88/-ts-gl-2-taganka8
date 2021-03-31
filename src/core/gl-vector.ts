@@ -1,3 +1,5 @@
+import { GlMatrix } from "./gl-matrix";
+
 export class GlVector {
   v: Float32Array = new Float32Array(3);
 
@@ -36,6 +38,14 @@ export class GlVector {
     return this.divide(magnitude);
   }
 
+  public scale(scalar: number): GlVector {
+    let result: number = 0;
+    for (let i = 0; i < this.v.length; i++) {
+      this.v[i] = this.v[i] * scalar;
+    }
+    return this;
+  }
+
   public crossProduct(v: GlVector): GlVector {
     const result = new Float32Array(3);
     result[0] = this.v[1] * v.v[2] - this.v[2] * v.v[1];
@@ -50,6 +60,23 @@ export class GlVector {
     for (let i = 0; i < this.v.length; i++) {
       result += this.v[i] * v.v[i];
     }
+    return result;
+  }
+
+  public angleBetween(v: GlVector): number {
+    let angle = Math.acos(this.dotProduct(v) / (this.magnitude * v.magnitude));
+    if (this.v[0] < 0) {
+      return -angle;
+    }
+    return angle;
+  }
+
+  public transform(m: GlMatrix) {
+    const result = this.copy();
+    result.v[0] = this.v[0] * m.m[0] + this.v[1] * m.m[4] + this.v[2] * m.m[8];
+    result.v[1] = this.v[0] * m.m[1] + this.v[1] * m.m[5] + this.v[2] * m.m[9];
+    result.v[2] = this.v[0] * m.m[2] + this.v[1] * m.m[6] + this.v[2] * m.m[10];
+    this.v = result.v;
     return result;
   }
 }

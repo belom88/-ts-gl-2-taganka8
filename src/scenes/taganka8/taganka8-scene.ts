@@ -1,11 +1,11 @@
 import { GlMatrix } from '../../core/gl-matrix';
 import { initShaderProgram } from '../../core/gl-shader';
-import { GlVector } from '../../core/gl-vector';
 import { ModelData } from '../../types/model-data';
 import { ProgramInfo } from '../../types/program-info';
 import { Taganka8Model } from './taganka8-model';
 import vertexShaderSource from './taganka8.vert.glsl';
 import fragmentShaderSource from './taganka8.frag.glsl';
+import { GlCamera } from '../../core/gl-camera';
 
 export class Taganka8Scene {
   private vsSource: string = vertexShaderSource;
@@ -17,7 +17,7 @@ export class Taganka8Scene {
   private colorBuffer: WebGLBuffer | null = null;
   private normalBuffer: WebGLBuffer | null = null;
 
-  constructor(public gl: WebGLRenderingContext) {
+  constructor(public gl: WebGLRenderingContext, public camera: GlCamera) {
     const program = initShaderProgram(gl, this.vsSource, this.fsSource);
     if (!program) {
       return;
@@ -75,7 +75,7 @@ export class Taganka8Scene {
     const fieldOfView = 45;
     const aspect = this.gl.canvas.width / this.gl.canvas.height;
     const zNear = 0.5;
-    const zFar = 100.0;
+    const zFar = 1000.0;
     const projectionMatrix = new GlMatrix().perspective(fieldOfView, aspect, zNear, zFar);
     this.gl.uniformMatrix4fv(
       this.programInfo.uniformLocations.projectionMatrix,
@@ -83,7 +83,7 @@ export class Taganka8Scene {
       projectionMatrix.m);
   }
 
-  public drawScene(eyeX: number = 0, eyeY: number = 0, eyeZ: number = 0) {
+  public drawScene() {
     // Clear the canvas before we start drawing on it.
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
@@ -94,12 +94,9 @@ export class Taganka8Scene {
       throw Error('Shaders has\'t been compiled correctly');
     }
 
-    const eye = new GlVector(eyeX, eyeY, eyeZ);
-    const center = new GlVector(0, 0, 0);
-    const up = new GlVector(0, 1, 0);
     const modelViewMatrix = new GlMatrix()
       .multiplyRight(this.modelData.transformation.m)
-      .lookAt(eye, center, up);
+      .lookAt(this.camera.eye, this.camera.center, this.camera.up);
 
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute

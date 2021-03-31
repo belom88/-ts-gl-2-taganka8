@@ -2,51 +2,84 @@ import { GlContext } from './core/gl-context';
 import { Taganka8Scene } from './scenes/taganka8/taganka8-scene';
 
 import './index.scss';
-
-const eye: number[] = [-10, 10, 10];
-
-const eyeControls: HTMLInputElement[] = [
-  document.getElementById('eyeX') as HTMLInputElement,
-  document.getElementById('eyeY') as HTMLInputElement,
-  document.getElementById('eyeZ') as HTMLInputElement
-];
-for(let i = 0; i < eye.length; i ++) {
-  const eyeControl = eyeControls[i];
-  eyeControl.value = eye[i].toString();
-  eyeControl.addEventListener('input', (event: Event) => changeCameraPosition(event, i));
-}
-
-const eyeValueViews: (HTMLElement | null)[] = [
-  document.getElementById('eyeXValue'),
-  document.getElementById('eyeYValue'),
-  document.getElementById('eyeZValue')
-];
-for (let i = 0; i < eye.length; i ++) {
-  const eyeValueView = eyeValueViews[i];
-  if (eyeValueView) {
-    eyeValueView.innerHTML = eye[i].toString();
-  }
-}
+import { Point } from './types/point';
+import { GlCamera } from './core/gl-camera';
 
 const glContext: GlContext = new GlContext('canvas');
+
+const canvasElement: HTMLCanvasElement = document.getElementsByTagName('canvas')[0];
+canvasElement.addEventListener('mousedown', canvasMouseDown);
+canvasElement.addEventListener('mousemove', canvasMouseMove);
+canvasElement.addEventListener('mouseleave', canvasDragEnd);
+canvasElement.addEventListener('mouseup', canvasDragEnd);
+canvasElement.addEventListener('wheel', canvasZoom);
 
 if (glContext.gl === null) {
   throw new Error('Gl context hasn\'t been found');
 }
 
-const scene = new Taganka8Scene(glContext.gl);
+const camera = new GlCamera(0, 10, 8);
+const scene = new Taganka8Scene(glContext.gl, camera);
 
 scene.loadModel().then(() => {
   scene.prepareScene();
-  scene.drawScene(...eye);
+  scene.drawScene();
 });
 
-function changeCameraPosition(event: Event, axis: number) {
-  const target = event.currentTarget as HTMLInputElement;
-  eye[axis] = target.valueAsNumber;
-  const eyeValueView = eyeValueViews[axis];
-  if (eyeValueView) {
-    eyeValueView.innerHTML = target.value;
+let inDrag: boolean = false;
+let inRotation: boolean = false;
+let dragStart: Point = { x: 0, y: 0 };
+function canvasMouseDown(event: MouseEvent) {
+  dragStart = {
+    x: event.clientX,
+    y: event.clientY
   }
-  scene.drawScene(...eye);
+
+  if (event.ctrlKey) {
+    inRotation = true;
+  } else {
+    inDrag = true;
+  }
+}
+
+function canvasMouseMove(event: MouseEvent) {
+  let dragDelta: Point = { x: 0, y: 0 };
+  dragDelta = {
+    x: (event.clientX - dragStart.x),
+    y: (event.clientY - dragStart.y)
+  }
+  if (inDrag) {
+    dragDelta.x *= 0.05;
+    dragDelta.y *= 0.05;
+    if (event.ctrlKey) {
+      inRotation = true;
+      inDrag = false;
+      return;
+    }
+    camera.move(dragDelta)
+  }
+  if (inRotation) {
+    if (!event.ctrlKey) {
+      inRotation = false;
+      inDrag = true;
+      return;
+    }
+    camera.rotate(dragDelta);
+  }
+  dragStart = {
+    x: event.clientX,
+    y: event.clientY
+  }
+  scene.drawScene();
+}
+
+function canvasDragEnd() {
+  inDrag = false;
+  inRotation = false;
+}
+
+function canvasZoom(event: WheelEvent) {
+  event.preventDefault();
+  camera.zoom(event.deltaY * 0.1);
+  scene.drawScene();
 }

@@ -7,15 +7,5 @@
     border: 1px solid green;
     width: 100%;
   }
-
-  .input.group {
-    display: flex;
-    flex-direction: column-reverse;
-    &.slider {
-      .slider {
-        width: 100%;
-      }
-    }
-  }
   
 }
