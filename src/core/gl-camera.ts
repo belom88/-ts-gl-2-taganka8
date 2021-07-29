@@ -1,4 +1,6 @@
+import { degreesToRadians } from "../tools/angles";
 import { Point } from "../types/point";
+import { ProjectionData } from "../types/projection";
 import { GlMatrix } from "./gl-matrix";
 import { GlVector } from "./gl-vector";
 
@@ -11,7 +13,13 @@ export class GlCamera {
   public minElevation: number = 4;
   public maxCameraAngle: number = 0.5;
 
-  constructor(eyeX: number, eyeY: number, eyeZ: number) {
+  constructor(
+    eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+    public gl: WebGLRenderingContext,
+    public projectionData: ProjectionData
+  ) {
     this._eye = new GlVector(eyeX, eyeY, eyeZ);
   }
 
@@ -33,12 +41,26 @@ export class GlCamera {
 
   move(delta: Point) {
     const toEyeVector = this.toEye;
-    toEyeVector.v[1] = 0;
     const zAxisVector = new GlVector(0, 0, 1);
-    const angle = toEyeVector.angleBetween(zAxisVector);
+    const angle = new GlVector(
+      toEyeVector.v[0],
+      0,
+      toEyeVector.v[2]
+    ).angleBetween(zAxisVector);
     const rotatedDelta: Point = { x: 0, y: 0 };
-    rotatedDelta.x = (delta.x * Math.cos(angle) + delta.y * Math.sin(angle));
-    rotatedDelta.y = (delta.x * -Math.sin(angle) + delta.y * Math.cos(angle));
+    const { width, height } = this.gl.canvas;
+    const {fieldOfView, zNear, aspect} = this.projectionData;
+    const yh = zNear * Math.tan(degreesToRadians(fieldOfView / 2)) * 2;
+    const yw = yh * aspect;
+    const ratio = toEyeVector.magnitude / zNear;
+    const worldUnitsMoved: Point = {
+      x: yw / width,
+      y: yh / height,
+    };
+    delta.x *= worldUnitsMoved.x * ratio;
+    delta.y *= worldUnitsMoved.y * ratio;
+    rotatedDelta.x = delta.x * Math.cos(angle) + delta.y * Math.sin(angle);
+    rotatedDelta.y = delta.x * -Math.sin(angle) + delta.y * Math.cos(angle);
     this._eye.v[0] += -rotatedDelta.x;
     this._eye.v[2] += -rotatedDelta.y;
     this._center.v[0] += -rotatedDelta.x;

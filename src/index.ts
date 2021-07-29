@@ -1,25 +1,34 @@
-import { GlContext } from './core/gl-context';
-import { Taganka8Scene } from './scenes/taganka8/taganka8-scene';
+import { GlContext } from "./core/gl-context";
+import { Taganka8Scene } from "./scenes/taganka8/taganka8-scene";
 
-import './index.scss';
-import { Point } from './types/point';
-import { GlCamera } from './core/gl-camera';
+import "./index.scss";
+import { Point } from "./types/point";
+import { GlCamera } from "./core/gl-camera";
+import { ProjectionData } from "./types/projection";
 
-const glContext: GlContext = new GlContext('canvas');
+const glContext: GlContext = new GlContext("canvas");
 
-const canvasElement: HTMLCanvasElement = document.getElementsByTagName('canvas')[0];
-canvasElement.addEventListener('mousedown', canvasMouseDown);
-canvasElement.addEventListener('mousemove', canvasMouseMove);
-canvasElement.addEventListener('mouseleave', canvasDragEnd);
-canvasElement.addEventListener('mouseup', canvasDragEnd);
-canvasElement.addEventListener('wheel', canvasZoom);
+const canvasElement: HTMLCanvasElement =
+  document.getElementsByTagName("canvas")[0];
+canvasElement.addEventListener("mousedown", canvasMouseDown);
+canvasElement.addEventListener("mousemove", canvasMouseMove);
+canvasElement.addEventListener("mouseleave", canvasDragEnd);
+canvasElement.addEventListener("mouseup", canvasDragEnd);
+canvasElement.addEventListener("wheel", canvasZoom);
 
 if (glContext.gl === null) {
-  throw new Error('Gl context hasn\'t been found');
+  throw new Error("Gl context hasn't been found");
 }
 
-const camera = new GlCamera(0, 10, 8);
-const scene = new Taganka8Scene(glContext.gl, camera);
+const projectionData: ProjectionData = {
+  fieldOfView: 45,
+  aspect: glContext.gl.canvas.width / glContext.gl.canvas.height,
+  zNear: 0.5,
+  zFar: 1000.0,
+};
+
+const camera = new GlCamera(0, 10, 8, glContext.gl, projectionData);
+const scene = new Taganka8Scene(glContext.gl, camera, projectionData);
 
 scene.loadModel().then(() => {
   scene.prepareScene();
@@ -32,8 +41,8 @@ let dragStart: Point = { x: 0, y: 0 };
 function canvasMouseDown(event: MouseEvent) {
   dragStart = {
     x: event.clientX,
-    y: event.clientY
-  }
+    y: event.clientY,
+  };
 
   if (event.ctrlKey) {
     inRotation = true;
@@ -45,18 +54,18 @@ function canvasMouseDown(event: MouseEvent) {
 function canvasMouseMove(event: MouseEvent) {
   let dragDelta: Point = { x: 0, y: 0 };
   dragDelta = {
-    x: (event.clientX - dragStart.x),
-    y: (event.clientY - dragStart.y)
-  }
+    x: event.clientX - dragStart.x,
+    y: event.clientY - dragStart.y,
+  };
   if (inDrag) {
-    dragDelta.x *= 0.05;
-    dragDelta.y *= 0.05;
+    dragDelta.x;
+    dragDelta.y;
     if (event.ctrlKey) {
       inRotation = true;
       inDrag = false;
       return;
     }
-    camera.move(dragDelta)
+    camera.move(dragDelta);
   }
   if (inRotation) {
     if (!event.ctrlKey) {
@@ -68,8 +77,8 @@ function canvasMouseMove(event: MouseEvent) {
   }
   dragStart = {
     x: event.clientX,
-    y: event.clientY
-  }
+    y: event.clientY,
+  };
   scene.drawScene();
 }
 
